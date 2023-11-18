@@ -1,24 +1,19 @@
 import pandas as pd
 import argparse
 import tensorflow as tf
+import numpy as np 
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Conv1D, MaxPooling1D
+from tensorflow.keras.optimizers import Adam
+import joblib
+
 
 def load_data(file_path):
-    # TODO: Load processed data from CSV file
-    df = {
-    'SP': [9, 100, 250, 150, 900],
-    'UK': [12, 39, 1982, 11, 22],
-    'DE': [1, 100, 250, 150, 9000],
-    'DK': [9000, 100, 250, 150, 900],
-    'HU': [9, 100000, 250, 150, 900],
-    'SE': [9, 100, 250, 150, 900],
-    'IT': [9, 100, 250, 150000, 900],
-    'PO': [9, 100, 250, 150, 900],
-    'NL': [91, 100, 25000, 150, 900]
-}
-    # df = pd.read_csv(file_path)
+    df = pd.read_csv(file_path)
     df = pd.DataFrame(df)
     df = add_labels(df)
-    print(df)
     return df
 
 def add_labels(data_frame):
@@ -32,10 +27,13 @@ def add_labels(data_frame):
         'IT': 6, # Italy
         'PO': 7, # Poland
         'NL': 8 # Netherlands
-    }  
+    }
+
     labels = []
+    
     for index, row in data_frame.iterrows():
-        max_column_name = row.index[1:][row.values[1:].argmax()]
+        non_empty_values = np.array([value for value in row.values[1:] if pd.notna(value) and value != ''])
+        max_column_name = row.index[1:][np.argmax(non_empty_values)]
         labels.append(country_map[max_column_name])
     
     data_frame['label'] = labels
@@ -44,15 +42,35 @@ def add_labels(data_frame):
 
 def split_data(df):
     # TODO: Split data into training and validation sets (the test set is already provided in data/test_data.csv)
+    df = df.fillna(0.0)
+    df['StartTime'] = pd.to_datetime(df['StartTime']).astype(int) // 10**9
+    X = df.iloc[:, :-1]
+    y = df['label']
+
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
     return X_train, X_val, y_train, y_val
 
-def train_model(X_train, y_train):
+def train_model(X_train, y_train, X_val, y_val):
     # TODO: Initialize your model and train it
+    model = Sequential()
+    model.add(Conv1D(filters=50, kernel_size=3, activation='relu', padding='same', input_shape=(X_train.shape[1], 1)))
+    model.add(MaxPooling1D(pool_size=2))
+    model.add(Conv1D(filters=20, kernel_size=3, activation='relu', padding='same'))
+    model.add(LSTM(units=50,return_sequences=True, input_shape=(X_train.shape[1], 1)))
+    model.add(LSTM(units=50))
+    model.add(Dense(units=1))
+    model.compile(optimizer=Adam(lr=0.001), loss='mean_squared_error')
+
+    # Train the model
+    model.fit(X_train, y_train, epochs=50, batch_size=32, validation_data=(X_val, y_val))
 
     return model
 
 def save_model(model, model_path):
+
     # TODO: Save your trained model
+    joblib.dump(model, model_path)
+    print(f'Model saved to {model_path}')
     pass
 
 def parse_arguments():
@@ -71,10 +89,10 @@ def parse_arguments():
     )
     return parser.parse_args()
 
-def main(input_file, model_file):
-    df = load_data(input_file)
+def main(input_file, model_file = './models'):
+    df = load_data('./data/processed_data.csv')
     X_train, X_val, y_train, y_val = split_data(df)
-    model = train_model(X_train, y_train)
+    model = train_model(X_train, y_train, X_val, y_val)
     save_model(model, model_file)
 
 if __name__ == "__main__":
