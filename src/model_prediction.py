@@ -3,14 +3,17 @@ import argparse
 
 def load_data(file_path):
     # TODO: Load test data from CSV file
+    df = pd.read_csv(file_path)
+    df = pd.DataFrame(df)
     return df
 
 def load_model(model_path):
-    # TODO: Load the trained model
-    return model
+    return joblib.load(model_filename)
 
 def make_predictions(df, model):
     # TODO: Use the model to make predictions on the test data
+    prediction = model.predict(new_data_point)
+    print(f'Prediction for {new_data_point}: {prediction}')
     return predictions
 
 def save_predictions(predictions, predictions_file):
