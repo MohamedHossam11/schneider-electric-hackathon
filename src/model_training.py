@@ -48,6 +48,11 @@ def split_data(df):
     y = df['label']
 
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_temp, X_test, y_temp, y_test = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+    X_test.to_csv("data/testing_data.csv", index=False)
+    y_test.to_csv("data/testing_labels.csv", index=False)
+
     return X_train, X_val, y_train, y_val
 
 def train_model(X_train, y_train, X_val, y_val):

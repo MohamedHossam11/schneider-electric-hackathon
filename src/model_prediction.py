@@ -1,5 +1,10 @@
 import pandas as pd
+import numpy as np
 import argparse
+import joblib
+from sklearn.metrics import mean_absolute_error
+
+
 
 def load_data(file_path):
     # TODO: Load test data from CSV file
@@ -8,13 +13,17 @@ def load_data(file_path):
     return df
 
 def load_model(model_path):
-    return joblib.load(model_filename)
+    return joblib.load(model_path)
 
 def make_predictions(df, model):
-    # TODO: Use the model to make predictions on the test data
-    prediction = model.predict(new_data_point)
-    print(f'Prediction for {new_data_point}: {prediction}')
-    return predictions
+    y_pred = model.predict(df)
+    y_pred =y_pred.flatten()
+    y_val = pd.read_csv('data/testing_labels.csv')
+    print(y_val)
+    mae = mean_absolute_error(y_val, y_pred)
+    accuracy_percentage = (1 - (mae / np.mean(y_val))) * 100
+    print(accuracy_percentage)
+    return y_pred
 
 def save_predictions(predictions, predictions_file):
     # TODO: Save predictions to a JSON file
